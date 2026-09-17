@@ -1,0 +1,22 @@
+# IDE & AI Configs
+.agents
+.codex
+skills-lock.json
+output.json
+
+# Backend
+backend/.venv
+backend/__pycache__
+backend/.pytest_cache
+backend/.env
+backend/*.pyc
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.local
+frontend/.DS_Store
+
+# OS Files
+.DS_Store
