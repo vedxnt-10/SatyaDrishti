@@ -16,8 +16,7 @@ export default function Scanner() {
     formData.append('file', file);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/analyze`, {
+      const response = await fetch('http://localhost:8000/api/analyze', {
         method: 'POST',
         body: formData,
       });
