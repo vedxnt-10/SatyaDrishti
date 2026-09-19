@@ -119,7 +119,7 @@ export default function Scanner() {
         {state === 'upload' && <UploadZone onUpload={handleUpload} />}
 
         {state === 'processing' && (
-          <ProcessingSteps onComplete={handleProcessComplete} />
+          <ProcessingSteps onComplete={handleProcessComplete} isApiDone={isApiDone} />
         )}
 
         {state === 'results' && (

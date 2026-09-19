@@ -14,23 +14,33 @@ const steps = [
 
 const ease = [0.32, 0.72, 0, 1];
 
-export default function ProcessingSteps({ onComplete }) {
+export default function ProcessingSteps({ onComplete, isApiDone }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
-        if (prev >= steps.length - 1) {
-          clearInterval(interval);
-          setTimeout(onComplete, 500);
+        // If we are at the last step, we MUST wait for the API to be done before completing
+        if (prev === steps.length - 1) {
+          if (isApiDone) {
+            clearInterval(interval);
+            setTimeout(onComplete, 500);
+            return prev;
+          }
+          // Stall at 100% if API isn't done yet
           return prev;
         }
+        
+        // If we are at the second to last step (99%), stall there if API isn't done
+        if (prev === steps.length - 2 && !isApiDone) {
+           return prev; // Stall here to indicate we are still working
+        }
+
         return prev + 1;
       });
-    }, 420);
-
+    }, 800); // Slowed down from 420 to 800 to make the animation last longer (more realistic)
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [onComplete, isApiDone]);
 
   const progress = ((currentStep + 1) / steps.length) * 100;
 
