@@ -43,12 +43,15 @@ export default function Scanner() {
       // Hackathon Demo Resilience: Dynamic Fallback based on filename
       const isGenuine = file.name.toLowerCase().includes('genuine');
       
+      const objectUrl = URL.createObjectURL(file);
+      
       if (isGenuine) {
         setResult({
           doc_type: 'aadhaar',
           verdict: 'genuine',
           risk_score: 12,
           explanation: 'API connection unavailable. Displaying fallback diagnostic data. Document appears highly authentic with consistent compression and structural integrity.',
+          heatmap_base64: objectUrl,
           layers: {
             structural: { status: 'pass', score: 98, details: 'Aspect ratio and document bounds verified.' },
             pixel_forensics: { status: 'pass', score: 95, details: 'Uniform digital flat image detected. No compression anomalies.' },
@@ -68,6 +71,7 @@ export default function Scanner() {
           risk_score: 65,
           explanation:
             'API connection unavailable. Displaying fallback diagnostic data with partial analysis results.',
+          heatmap_base64: objectUrl,
           layers: {
             structural: { status: 'pass', score: 90, details: 'Aspect ratio and document bounds verified.' },
             pixel_forensics: { status: 'warning', score: 50, details: 'Micro-variance detected in compression matrix.' },
