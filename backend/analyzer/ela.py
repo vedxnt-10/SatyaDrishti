@@ -138,14 +138,14 @@ def run_ela(image, scale=15):
 def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splice_result=None, face_box=None, ai_detection=None, risk_score=0):
     h, w = image.shape[:2]
     # Create a smooth Grad-CAM style hotspot mask for outliers
-    blob_mask = np.zeros((h, w), dtype=np.uint8)
+    blob_mask = np.zeros((h, w), dtype=np.float32)
     
     if num_outliers > 0:
         for i, is_outlier in enumerate(outlier_mask):
             if is_outlier:
                 y1, y2, x1, x2 = block_coords[i]
                 # Fill the block with a high intensity
-                blob_mask[y1:y2, x1:x2] = 255
+                blob_mask[y1:y2, x1:x2] = 255.0
                 
     # If face matching failed, or if the AI detection flagged the image (even as a warning),
     # or if the overall risk score is highly suspicious (>= 70), provide a visual heatmap.
@@ -155,11 +155,11 @@ def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splic
         if face_box:
             x, y, w_box, h_box = face_box
             # Focus intensely on the face
-            blob_mask[y:y+h_box, x:x+w_box] = 255
+            blob_mask[y:y+h_box, x:x+w_box] = 255.0
         elif risk_score >= 70:
             # If no face is found but it's a global fake, tint the center heavily
             cy, cx = h // 2, w // 2
-            blob_mask[cy-h//4:cy+h//4, cx-w//4:cx+w//4] = 200
+            blob_mask[cy-h//4:cy+h//4, cx-w//4:cx+w//4] = 200.0
                 
     # Blur massively to create smooth heat blobs
     ksize = min(w, h) // 6
@@ -172,6 +172,8 @@ def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splic
     # Normalize the blurred mask back to 0-255
     if np.max(blob_mask) > 0:
         blob_mask = cv2.normalize(blob_mask, None, 0, 255, cv2.NORM_MINMAX)
+        
+    blob_mask = blob_mask.astype(np.uint8)
     
     # Apply colormap (INFERNO: 0 is black, 255 is bright yellow/white)
     heatmap = cv2.applyColorMap(blob_mask, cv2.COLORMAP_INFERNO)
