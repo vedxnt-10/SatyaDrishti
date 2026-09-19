@@ -12,6 +12,15 @@ def run_ela(image, scale=15):
     """
     h_img, w_img = image.shape[:2]
     
+    # Safety check for extremely small or malformed images
+    if h_img < 32 or w_img < 32:
+        return {
+            "score": 50,
+            "status": "warning",
+            "details": "Image too small for reliable Error Level Analysis.",
+            "_diagnostics": {"total_blocks": 0, "outlier_blocks": 0}
+        }, np.zeros_like(image), (0, [], [])
+
     # Run ELA at multiple quality levels and combine
     combined_ela = np.zeros((h_img, w_img), dtype=np.float64)
     
@@ -87,16 +96,16 @@ def run_ela(image, scale=15):
     # If the image is completely digitally flat (median 0, crazy CV), statistical outliers
     # don't work well because it's just text edges vs pure white background.
     # However, if there's a massive localized variance (outlier intensity > 5.0), it's likely a pasted patch.
-    if num_outliers > 0 and outlier_intensity > 5.0 and outlier_ratio > 0.005:
+    if global_median < 1.0 and cv > 3.0:
+        status = "pass"
+        score = 95
+        details = f"Uniform digital flat image detected. No compression anomalies."
+    elif num_outliers > 0 and outlier_intensity > 5.0 and outlier_ratio > 0.005:
         status = "fail"
         score = max(5, 25 - int(outlier_intensity * 2))
         details = (f"Regional compression inconsistency detected. "
                    f"{num_outliers}/{total_blocks} blocks are massive outliers "
                    f"(intensity: {outlier_intensity:.1f}x). Probable image splicing.")
-    elif global_median < 1.0 and cv > 5.0:
-        status = "pass"
-        score = 95
-        details = f"Uniform digital flat image detected. No compression anomalies."
     elif num_outliers > 0 and cv > 0.5 and outlier_ratio > 0.005:
         status = "fail"
         score = max(5, 25 - int(outlier_intensity * 3))
@@ -126,7 +135,7 @@ def run_ela(image, scale=15):
         }
     }, ela_raw, (num_outliers, outlier_mask, block_coords)
 
-def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splice_result=None, face_box=None, ai_detection=None):
+def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splice_result=None, face_box=None, ai_detection=None, risk_score=0):
     h, w = image.shape[:2]
     # Create a smooth Grad-CAM style hotspot mask for outliers
     blob_mask = np.zeros((h, w), dtype=np.uint8)
@@ -138,14 +147,19 @@ def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splic
                 # Fill the block with a high intensity
                 blob_mask[y1:y2, x1:x2] = 255
                 
-    # If face matching failed, or if the entire AI detection failed (synthetic image),
-    # intelligently target the biometric face region as the primary suspicious zone.
-    if ((face_splice_result and face_splice_result.get("status") == "fail") or 
-        (ai_detection and ai_detection.get("status") == "fail")):
+    # If face matching failed, or if the AI detection flagged the image (even as a warning),
+    # or if the overall risk score is highly suspicious (>= 70), provide a visual heatmap.
+    if (num_outliers == 0 and risk_score >= 70) or \
+       (face_splice_result and face_splice_result.get("status") == "fail") or \
+       (ai_detection and ai_detection.get("status") in ["fail", "warning"]):
         if face_box:
             x, y, w_box, h_box = face_box
             # Focus intensely on the face
             blob_mask[y:y+h_box, x:x+w_box] = 255
+        elif risk_score >= 70:
+            # If no face is found but it's a global fake, tint the center heavily
+            cy, cx = h // 2, w // 2
+            blob_mask[cy-h//4:cy+h//4, cx-w//4:cx+w//4] = 200
                 
     # Blur massively to create smooth heat blobs
     ksize = min(w, h) // 6

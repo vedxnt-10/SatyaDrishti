@@ -34,8 +34,24 @@ def calculate_risk_score(ela_result, structural_result, ocr_result, qr_result, a
         qr_result.get("score", 0),
         ai_detection.get("score", 0)
     ]
-    if any(s < 30 for s in non_ela_scores):
-        risk = max(risk, 70)
+    
+    # Check for severe failures in non-ELA layers
+    severe_failures = sum(1 for s in non_ela_scores if s < 40)
+    warnings = sum(1 for s in non_ela_scores if 40 <= s <= 70)
+    
+    if severe_failures >= 2:
+        # Multiple severe failures guarantee a high risk
+        risk = max(risk, 85)
+    elif severe_failures == 1:
+        # A single severe failure shouldn't automatically fail if ELA passes, but raises suspicion
+        risk = max(risk, 65)
+        
+    if warnings >= 2:
+        # If a document has multiple warnings (e.g. bad aspect ratio AND missing EXIF),
+        # it is highly suspicious and likely a fake template downloaded from the web.
+        risk = max(risk, 75)
+    elif warnings == 1:
+        risk = max(risk, 45)
         
     return int(risk)
 
