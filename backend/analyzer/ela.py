@@ -147,8 +147,20 @@ def generate_heatmap(image, num_outliers, outlier_mask, block_coords, face_splic
                 # Fill the block with a high intensity
                 blob_mask[y1:y2, x1:x2] = 255.0
                 
-    # Removed faked face blob to ensure heatmap remains mathematically accurate to ELA outliers
-    
+    # If face matching failed, or if the AI detection flagged the image (even as a warning),
+    # or if the overall risk score is highly suspicious (>= 70), provide a visual heatmap.
+    if (num_outliers == 0 and risk_score >= 60) or \
+       (face_splice_result and face_splice_result.get("status") == "fail") or \
+       (ai_detection and ai_detection.get("status") in ["fail", "warning"]):
+        if face_box:
+            x, y, w_box, h_box = face_box
+            # Focus intensely on the face
+            blob_mask[y:y+h_box, x:x+w_box] = 255.0
+        elif risk_score >= 60:
+            # If no face is found but it's a global fake, tint the center heavily
+            cy, cx = h // 2, w // 2
+            blob_mask[cy-h//4:cy+h//4, cx-w//4:cx+w//4] = 200.0
+                
     # Blur massively to create smooth heat blobs
     ksize = min(w, h) // 6
     if ksize % 2 == 0:
