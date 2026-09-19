@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UploadZone from '../components/UploadZone';
 import ProcessingSteps from '../components/ProcessingSteps';
 import ResultsPanel from '../components/ResultsPanel';
