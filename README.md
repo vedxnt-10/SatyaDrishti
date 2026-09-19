@@ -1,4 +1,4 @@
-# 👁️ SatyaDrishti
+# SatyaDrishti
 
 ## Prototype link- https://satya-drishti-three.vercel.app/
 SatyaDrishti is a lightweight, 5-layer forensic analysis engine built to detect forged, AI-generated, and digitally manipulated identity documents. 
