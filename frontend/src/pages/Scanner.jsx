@@ -7,10 +7,20 @@ export default function Scanner() {
   const [state, setState] = useState('upload'); // 'upload' | 'processing' | 'results'
   const [result, setResult] = useState(null);
   const [originalImage, setOriginalImage] = useState(null);
+  const [isApiDone, setIsApiDone] = useState(false);
+  const [isAnimationDone, setIsAnimationDone] = useState(false);
+
+  useEffect(() => {
+    if (state === 'processing' && isApiDone && isAnimationDone) {
+      setState('results');
+    }
+  }, [state, isApiDone, isAnimationDone]);
 
   const handleUpload = async (file) => {
     setState('processing');
     setOriginalImage(URL.createObjectURL(file));
+    setIsApiDone(false);
+    setIsAnimationDone(false);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -49,17 +59,21 @@ export default function Scanner() {
         extracted_data: { uid: 'XXXX XXXX 1234', entity: 'Demo Subject', yob: '1990' },
         face_match: { detected: true, confidence: 78.4, status: 'warning' },
       });
+    } finally {
+      setIsApiDone(true);
     }
   };
 
   const handleProcessComplete = () => {
-    setState('results');
+    setIsAnimationDone(true);
   };
 
   const handleReset = () => {
     setState('upload');
     setResult(null);
     setOriginalImage(null);
+    setIsApiDone(false);
+    setIsAnimationDone(false);
   };
 
   return (
