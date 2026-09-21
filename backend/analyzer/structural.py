@@ -13,7 +13,8 @@ def check_structure(image, doc_type):
     # Example logic: ID cards usually have ~1.58 aspect ratio (credit card size)
     # PAN and Aadhaar physical cards often follow this roughly.
     if doc_type in ["aadhaar", "pan"]:
-        if not (1.3 < aspect_ratio < 1.8):
+        # Allow both landscape (credit card size) and portrait (A4/letter) orientations
+        if not (0.5 < aspect_ratio < 2.2):
             score = 55
             details = f"Unusual aspect ratio ({aspect_ratio:.2f}) for {doc_type}."
             status = "warning"

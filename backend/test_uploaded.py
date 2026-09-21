@@ -4,7 +4,7 @@ import json
 import os
 
 # Add analyzer to path
-sys.path.append('/Users/vedant/.gemini/antigravity-ide/scratch/truthlens/backend')
+sys.path.append(os.path.dirname(__file__))
 
 from analyzer.ela import run_ela
 from analyzer.noise_analysis import analyze_noise_consistency
@@ -20,7 +20,7 @@ def test_image(img_path):
     print(f"Testing {os.path.basename(img_path)}")
     image = cv2.imread(img_path)
     if image is None:
-        print("Could not read image.")
+        print(f"Could not read image at {img_path}.")
         return
         
     print("--- FACE SPLICING ---")
@@ -40,5 +40,9 @@ def test_image(img_path):
     print(json.dumps(noise_res, indent=2))
 
 if __name__ == "__main__":
-    test_image("/Users/vedant/.gemini/antigravity-ide/brain/60211e6e-1b6b-4c16-b560-c3d5e4908bde/.user_uploaded/media_1787731868352.png")
-    test_image("/Users/vedant/.gemini/antigravity-ide/brain/60211e6e-1b6b-4c16-b560-c3d5e4908bde/.user_uploaded/media_1787731868352.png")
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            test_image(arg)
+    else:
+        default_sample = os.path.join(os.path.dirname(__file__), '../frontend/public/sample_docs/tampered_aadhaar.jpg')
+        test_image(default_sample)

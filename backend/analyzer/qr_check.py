@@ -1,21 +1,29 @@
 import cv2
-from pyzbar.pyzbar import decode
+
+try:
+    from pyzbar.pyzbar import decode
+    HAS_PYZBAR = True
+except Exception:
+    HAS_PYZBAR = False
 
 def check_qr(image, doc_type=None):
     """
     Checks for the presence of a QR code.
-    Since Aadhaar QR codes are very dense, we use multiple fallback methods.
+    Uses pyzbar if available, with robust OpenCV QRCodeDetector fallback.
     """
-    # 1. Try pyzbar on original
-    decoded_objects = decode(image)
-    if decoded_objects:
-        return {"status": "pass", "score": 100, "details": "Secure QR detected. UIDAI PKI digital signature verified (Mock).", "detected": True}
-    
-    # 2. Try pyzbar on grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    decoded_objects_gray = decode(gray)
-    if decoded_objects_gray:
-        return {"status": "pass", "score": 100, "details": "Secure QR detected. UIDAI PKI digital signature verified (Mock).", "detected": True}
+    # 1. Try pyzbar on original and grayscale if available
+    if HAS_PYZBAR:
+        try:
+            decoded_objects = decode(image)
+            if decoded_objects:
+                return {"status": "pass", "score": 100, "details": "Secure QR detected. UIDAI PKI digital signature verified (Mock).", "detected": True}
+            
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            decoded_objects_gray = decode(gray)
+            if decoded_objects_gray:
+                return {"status": "pass", "score": 100, "details": "Secure QR detected. UIDAI PKI digital signature verified (Mock).", "detected": True}
+        except Exception:
+            pass
 
     # 3. Try OpenCV's detector (sometimes finds the bounding box even if pyzbar fails to decode)
     detector = cv2.QRCodeDetector()

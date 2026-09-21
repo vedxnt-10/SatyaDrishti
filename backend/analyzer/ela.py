@@ -95,7 +95,6 @@ def run_ela(image, scale=15):
     
     # If the image is completely digitally flat (median 0, crazy CV), statistical outliers
     # don't work well because it's just text edges vs pure white background.
-    # However, if there's a massive localized variance (outlier intensity > 5.0), it's likely a pasted patch.
     if global_median < 1.0 and cv > 3.0:
         status = "pass"
         score = 95

@@ -8,7 +8,6 @@ import {
   DownloadSimple,
   CaretDown,
   Eye,
-  Fingerprint,
 } from '@phosphor-icons/react';
 
 const ease = [0.32, 0.72, 0, 1];
@@ -148,11 +147,12 @@ function HeatmapSlider({ originalImage, heatmapImage }) {
 
 /* ── Main Results Panel ── */
 export default function ResultsPanel({ result, originalImage, onReset }) {
+  const [expandedLayer, setExpandedLayer] = useState(null);
+
   if (!result) return null;
 
   const { verdict, risk_score, layers, explanation, heatmap_base64, extracted_data } =
     result;
-  const [expandedLayer, setExpandedLayer] = useState(null);
 
   /* Verdict configuration */
   const verdictMap = {

@@ -19,26 +19,42 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/health")
+@app.get("/")
+def health_check():
+    return {
+        "status": "ok",
+        "service": "SatyaDrishti Forensics Engine",
+        "version": "1.0.0"
+    }
 
 def read_image(file_bytes):
     nparr = np.frombuffer(file_bytes, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     return image
 
-def classify_doc_type(text):
-    # Rule based classification
-    text_upper = text.upper()
+def classify_doc_type(text, filename=""):
+    text_upper = (text or "").upper()
     if "AADHAAR" in text_upper or "UIDAI" in text_upper:
         return "aadhaar"
     elif "INCOME TAX" in text_upper or "PAN" in text_upper:
         return "pan"
     elif "PASSPORT" in text_upper or "REPUBLIC OF INDIA" in text_upper:
         return "passport"
-    return "unknown"
+    
+    fn_lower = (filename or "").lower()
+    if "aadhaar" in fn_lower:
+        return "aadhaar"
+    elif "pan" in fn_lower:
+        return "pan"
+    elif "passport" in fn_lower:
+        return "passport"
+    return "aadhaar"
 
 def image_to_base64(image):
     _, buffer = cv2.imencode('.png', image)
@@ -63,16 +79,12 @@ async def analyze_document(file: UploadFile = File(...)):
             scale = max_dim / max(h, w)
             image = cv2.resize(image, (int(w * scale), int(h * scale)))
     
-        # 4. Run OCR first to classify doc type
+        # 2. Run OCR first to extract fields and classify document
         ocr_result, extracted_data = run_ocr(image)
-        
-        # 2. Classify document type
-        # For demo we'll just check OCR output since pytesseract extracts text from image directly
-        # Wait, the spec expects doc_type. Let's just pass some dummy text or run OCR text.
-        # We don't have the raw text easily from run_ocr without modifying it, but we can just use 
-        # the extracted data to guess, or run tesseract again quickly.
-        # Actually, we can just assume "aadhaar" if we see an ID format, or pass a default.
-        doc_type = "aadhaar" # Mocked default for demo
+        filename = getattr(file, "filename", "")
+        doc_type = extracted_data.pop("_detected_doc_type", "unknown")
+        if not doc_type or doc_type == "unknown":
+            doc_type = classify_doc_type(extracted_data.get("id_number", ""), filename)
     
         # 3. Run ELA
         ela_result, ela_image, ela_outlier_data = run_ela(image)
@@ -148,4 +160,6 @@ async def analyze_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Internal analysis error: {str(e)}")
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8088)
+    import os
+    port = int(os.environ.get("PORT", 8088))
+    uvicorn.run(app, host="0.0.0.0", port=port)
